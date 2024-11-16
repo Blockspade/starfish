@@ -13,9 +13,3 @@
 [submodule "packages/foundry/lib/v4-core"]
 	path = packages/foundry/lib/v4-core
 	url = https://github.com/Uniswap/v4-core
-[submodule "packages/foundry/lib/solmate"]
-	path = packages/foundry/lib/solmate
-	url = https://github.com/transmissions11/solmate
-[submodule "packages/foundry/lib/foundry-chainlink-toolkit"]
-	path = packages/foundry/lib/foundry-chainlink-toolkit
-	url = https://github.com/smartcontractkit/foundry-chainlink-toolkit

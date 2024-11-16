@@ -2,13 +2,14 @@
 pragma solidity ^0.8.24;
 
 import {BaseHook} from "v4-periphery/src/base/hooks/BaseHook.sol";
-
 import {Hooks} from "v4-core/src/libraries/Hooks.sol";
 import {IPoolManager} from "v4-core/src/interfaces/IPoolManager.sol";
 import {PoolKey} from "v4-core/src/types/PoolKey.sol";
 import {PoolId, PoolIdLibrary} from "v4-core/src/types/PoolId.sol";
 import {BalanceDelta} from "v4-core/src/types/BalanceDelta.sol";
 import {BeforeSwapDelta, BeforeSwapDeltaLibrary} from "v4-core/src/types/BeforeSwapDelta.sol";
+import {IEntropyConsumer} from "@pythnetwork/entropy-sdk-solidity/IEntropyConsumer.sol";
+import {IEntropy} from "@pythnetwork/entropy-sdk-solidity/IEntropy.sol";
 import {ETFManager} from "./EtfToken.sol";
 import {AggregatorV3Interface} from "@chainlink/contracts/src/v0.8/shared/interfaces/AggregatorV3Interface.sol";
 
@@ -28,7 +29,11 @@ interface ISelfKisser {
     /// @notice Kisses caller on oracle `oracle`.
     function selfKiss(address oracle) external;
 }
-contract ETFHook is ETFManager, BaseHook {
+contract ETFHook is ETFManager, BaseHook,IEntropyConsumer {
+    IEntropy public entropy;
+    bytes32 private latestRandomNumber;
+    bool private isRandomNumberReady;
+
     address[2] public tokens; // the underlying tokens will be stored in this hook contract
     uint256[2] public weights;
     uint256 public rebalanceThreshold;
@@ -44,16 +49,34 @@ contract ETFHook is ETFManager, BaseHook {
     // token balances
     uint256[2] public tokenBalances;
 
+    // Oracle addresses
+    address public chainlinkOracle;
+    address public pythOracle;
+    address public api3Oracle;
+
+    // Events
+    event RandomNumberReceived(bytes32 randomNumber);
+    event OracleSelected(uint256 indexed oracleIndex);
+
     constructor(
         IPoolManager _poolManager,
-        address[2] memory _tokens, // only two tokens are supported for now
+        address[2] memory _tokens,
         uint256[2] memory _weights,
-        uint256 _rebalanceThreshold
-    ) BaseHook(_poolManager) ETFManager("ETF Token", "ETF") { // TODO: name the ETF token as f"{token0.symbol} + {token1.symbol} ETF"
+        uint256 _rebalanceThreshold,
+        address entropyAddress,
+        address _chainlinkOracle,
+        address _pythOracle,
+        address _api3Oracle
+    ) BaseHook(_poolManager) ETFManager("ETF Token", "ETF") {
+        entropy = IEntropy(entropyAddress);
         tokens = _tokens;
         weights = _weights;
         rebalanceThreshold = _rebalanceThreshold;
-        for (uint256 i= 0; i < 2; i++) {
+        chainlinkOracle = _chainlinkOracle;
+        pythOracle = _pythOracle;
+        api3Oracle = _api3Oracle;
+        
+        for (uint256 i = 0; i < 2; i++) {
             tokenBalances[i] = 0;
         }
 
@@ -62,6 +85,46 @@ contract ETFHook is ETFManager, BaseHook {
         ISelfKisser(Chronicle_ETH_USD_3).selfKiss(address(this));
     }
 
+    // Entropy Implementation
+    function requestRandomNumber() internal {
+        bytes32 userRandomNumber = keccak256(abi.encodePacked(block.timestamp, msg.sender));
+        address entropyProvider = entropy.getDefaultProvider();
+        uint256 fee = entropy.getFee(entropyProvider);
+        
+        entropy.requestWithCallback{value: fee}(
+            entropyProvider,
+            userRandomNumber
+        );
+        
+        isRandomNumberReady = false;
+    }
+
+    function entropyCallback(
+        uint64 sequenceNumber,
+        address provider,
+        bytes32 randomNumber
+    ) internal override {
+        latestRandomNumber = randomNumber;
+        isRandomNumberReady = true;
+        emit RandomNumberReceived(randomNumber);
+    }
+
+    function getEntropy() internal view override returns (address) {
+        return address(entropy);
+    }
+
+    function selectOracle() internal returns (bool) {
+        if (!isRandomNumberReady) {
+            requestRandomNumber();
+            return chainlinkOracle; // Default to Chainlink if random number not ready
+        }
+        
+        uint256 randomValue = uint256(latestRandomNumber) % 2;
+        emit OracleSelected(randomValue);
+        return randomValue;
+    }
+
+    // Hook permissions
     function getHookPermissions() public pure override returns (Hooks.Permissions memory) {
         return Hooks.Permissions({
             beforeInitialize: false,
@@ -81,6 +144,31 @@ contract ETFHook is ETFManager, BaseHook {
         });
     }
 
+    // Price fetching functions
+    function getPrices() internal returns (uint256[2] memory prices) {
+        address selectedOracle = selectOracle();
+        
+        if (!selectedOracle) {
+            return getChainlinkPrices();
+        } else {
+            return getChroniclePrices();
+        }
+    }
+
+    function getChainlinkPrices() internal view returns (uint256[2] memory prices) {
+        // TODO: Implement Chainlink price fetching
+       (, int256 answerETH, , ,) = AggregatorV3Interface(Chainlink_ETH_USD).latestRoundData();
+        (, int256 answerBTC, , ,) = AggregatorV3Interface(Chainlink_BTC_USD).latestRoundData();
+        return [uint256(answerETH), uint256(answerBTC)];
+    }
+
+    function getChroniclePrices() internal view returns (uint256[2] memory prices) {
+        // TODO: Implement Pyth price fetching
+        return [IChronicle(Chronicle_ETH_USD_3).read(), IChronicle(Chronicle_BTC_USD_3).read()];
+    }
+
+
+    // Hook callbacks
     function beforeSwap(address sender, PoolKey calldata key, IPoolManager.SwapParams calldata, bytes calldata)
         external
         override
@@ -117,18 +205,6 @@ contract ETFHook is ETFManager, BaseHook {
         burnETFToken();
         return BaseHook.beforeRemoveLiquidity.selector;
     }
-
-    // returns each token prices from chronicle oracle
-    function chroniclegetPrices() public view returns  (uint256[2] memory prices) {
-        // TODO: use chainlink, pyth, chronicle
-        return [IChronicle(Chronicle_ETH_USD_3).read(), IChronicle(Chronicle_BTC_USD_3).read()];
-    }
-
-    // returns each token prices from chainlink oracle
-    function chainlinkgetPrices() public view returns  (uint256[2] memory prices) {
-        return [AggregatorV3Interface(Chainlink_ETH_USD).latestRoundData(), AggregatorV3Interface(Chainlink_BTC_USD).latestRoundData()];
-    }
-
 
     function checkIfRebalanceNeeded() private returns (bool) {
     uint256[2] memory prices = getPrices();

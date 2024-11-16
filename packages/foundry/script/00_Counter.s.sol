@@ -39,7 +39,9 @@ contract EtfHookScript is Script, Constants {
         address[2] memory TOKENS = [address(token0), address(token1)];
         uint256[2] memory WEIGHTS = [uint256(1), uint256(1)];
         uint256 REBALANCE_THRESHOLD = 5;
-        ETFHook etfHook = new ETFHook{salt: salt}(IPoolManager(POOLMANAGER), TOKENS, WEIGHTS, REBALANCE_THRESHOLD);
+        ETFHook etfHook = new ETFHook{salt: salt}(
+            IPoolManager(POOLMANAGER), TOKENS, WEIGHTS, REBALANCE_THRESHOLD, address(0), address(0), address(0), address(0)
+        );
         require(address(etfHook) == hookAddress, "EtfHookScript: hook address mismatch");
     }
 }
