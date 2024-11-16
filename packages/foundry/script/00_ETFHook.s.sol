@@ -43,8 +43,8 @@ contract EtfHookScript is Script, Constants {
         vm.broadcast();
         token2.mint(msg.sender, 1_000_000_000_000_000_000_000_000);
         address[2] memory TOKENS = [address(token0), address(token1)];
-        uint256[2] memory WEIGHTS = [uint256(1), uint256(1)];
-        uint256 REBALANCE_THRESHOLD = 5;
+        uint256[2] memory WEIGHTS = [uint256(5000), uint256(5000)];
+        uint256 REBALANCE_THRESHOLD = 100;
         address entropy = 0x41c9e39574F40Ad34c79f1C99B66A45eFB830d4c;
 
         // Mine a salt that will produce a hook address with the correct flags

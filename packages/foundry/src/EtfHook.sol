@@ -75,6 +75,8 @@ contract ETFHook is BaseHook ,ETFManager, IEntropyConsumer {
     // Events
     event RandomNumberReceived(bytes32 randomNumber);
 
+    receive() external payable {}
+
     constructor(
         IPoolManager _poolManager,
         address[2] memory _tokens,
@@ -192,17 +194,17 @@ contract ETFHook is BaseHook ,ETFManager, IEntropyConsumer {
     }
 
     function beforeAddLiquidity(
-        address,
+        address sender, // uniswap pool manager
         PoolKey calldata key,
         IPoolManager.ModifyLiquidityParams calldata params,
-        bytes calldata
+        bytes calldata hookData // user address
     ) external override returns (bytes4) {
         (bool needed, uint256[2] memory prices) = checkIfRebalanceNeeded();
         if (needed) {
             rebalance();
         }
         uint256 etfAmount = uint256(params.liquidityDelta);
-        mintETFToken(etfAmount, prices);
+        mintETFToken(etfAmount, hookData, prices);
         return BaseHook.beforeAddLiquidity.selector;
     }
 
@@ -212,14 +214,14 @@ contract ETFHook is BaseHook ,ETFManager, IEntropyConsumer {
         IPoolManager.ModifyLiquidityParams calldata params,
         BalanceDelta delta,
         BalanceDelta feesAccrued,
-        bytes calldata hookData
+        bytes calldata info
     ) external override returns (bytes4, BalanceDelta) {
         (bool needed, uint256[2] memory prices) = checkIfRebalanceNeeded();
         if (needed) {
             rebalance();
         }
         uint256 etfAmount = uint256(-params.liquidityDelta);
-        burnETFToken(etfAmount, prices);
+        burnETFToken(etfAmount, info, prices);
         return (BaseHook.afterRemoveLiquidity.selector, delta);
     }
 
@@ -307,26 +309,27 @@ contract ETFHook is BaseHook ,ETFManager, IEntropyConsumer {
     }
 
     // 1 etf = 1 token0 + x token1 (x is calculated based on the weights and prices)
-    function mintETFToken(uint256 etfAmount, uint256[2] memory prices) private {
+    function mintETFToken(uint256 etfAmount, bytes calldata info, uint256[2] memory prices) private {
         uint256 token0Amount = etfAmount;
         uint256 token1Amount = etfAmount * prices[0] / prices[1] * weights[1] / weights[0];
-        // transfer tokens to ETF pool contract
-        ERC20(tokens[0]).transferFrom(msg.sender, address(this), token0Amount);
-        ERC20(tokens[1]).transferFrom(msg.sender, address(this), token1Amount);
+        address user = abi.decode(info, (address));
+        ERC20(tokens[0]).transferFrom(user, address(this), token0Amount);
+        ERC20(tokens[1]).transferFrom(user, address(this), token1Amount);
         //
-        mint(msg.sender, etfAmount);
+        mint(user, etfAmount);
         tokenBalances[0] += token0Amount;
         tokenBalances[1] += token1Amount;
     }
 
-    function burnETFToken(uint256 etfAmount, uint256[2] memory prices) private {
+    function burnETFToken(uint256 etfAmount, bytes calldata info, uint256[2] memory prices) private {
         uint256 token0Amount = etfAmount;
         uint256 token1Amount = etfAmount * prices[0] / prices[1] * weights[1] / weights[0];
         // transfer tokens to ETF pool contract
-        ERC20(tokens[0]).transfer(msg.sender, token0Amount);
-        ERC20(tokens[1]).transfer(msg.sender, token1Amount);
+        address user = abi.decode(info, (address));
+        ERC20(tokens[0]).transfer(user, token0Amount);
+        ERC20(tokens[1]).transfer(user, token1Amount);
         //
-        burn(msg.sender, etfAmount);
+        burn(user, etfAmount);
         tokenBalances[0] -= token0Amount;
         tokenBalances[1] -= token1Amount;
     }

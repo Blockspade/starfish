@@ -64,8 +64,6 @@ contract CreatePoolAndAddLiquidityScript is Script, Constants, Config {
         uint256 amount0Max = token0Amount + 1 wei;
         uint256 amount1Max = token1Amount + 1 wei;
 
-        // approve tokens
-
         (bytes memory actions, bytes[] memory mintParams) =
             _mintLiquidityParams(pool, tickLower, tickUpper, liquidity, amount0Max, amount1Max, address(this), hookData);
 
@@ -84,6 +82,8 @@ contract CreatePoolAndAddLiquidityScript is Script, Constants, Config {
         uint256 valueToPass = mockETH.isAddressZero() ? amount0Max : 0;
 
         vm.startBroadcast();
+        // send eth to hook contract
+        payable(address(hookContract)).transfer(0.001 ether);
         tokenApprovals();
         vm.stopBroadcast();
 
