@@ -175,7 +175,7 @@ contract ETFHook is BaseHook ,ETFManager, IEntropyConsumer {
     function beforeAddLiquidity(
         address,
         PoolKey calldata key,
-        IPoolManager.ModifyLiquidityParams calldata,
+        IPoolManager.ModifyLiquidityParams params,
         bytes calldata
     ) external override returns (bytes4) {
         (bool needed, uint256[2] memory prices) = checkIfRebalanceNeeded();
@@ -183,21 +183,23 @@ contract ETFHook is BaseHook ,ETFManager, IEntropyConsumer {
             rebalance();
         }
         // how many etf tokens to mint
-        mintETFToken(0, prices); // TODO
+        uint256 etfAmount = uint256(params.liquidityDelta);
+        mintETFToken(etfAmount, prices);
         return BaseHook.beforeAddLiquidity.selector;
     }
 
     function afterRemoveLiquidity(
         address,
         PoolKey calldata key,
-        IPoolManager.ModifyLiquidityParams calldata,
+        IPoolManager.ModifyLiquidityParams params,
         bytes calldata
     ) external override returns (bytes4) {
         (bool needed, uint256[2] memory prices) = checkIfRebalanceNeeded();
         if (needed) {
             rebalance();
         }
-        burnETFToken(0, prices); // TODO
+        uint256 etfAmount = -uint256(params.liquidityDelta);
+        burnETFToken(etfAmount, prices);
         return BaseHook.beforeRemoveLiquidity.selector;
     }
 
