@@ -1,11 +1,9 @@
 ## Uniswap V4 ETF Hook: Automated ETF Trading and Rebalancing 🔄
-<p align="center"> <img src="path-to-your-logo.png" alt="Uniswap V4 ETF Hook Logo" width="200" /> </p>
 
 ## 🪶 Overview
 The Uniswap V4 ETF Hook introduces a groundbreaking approach to automated ETF trading and rebalancing within decentralized finance. By leveraging decentralized oracles like Chainlink and Chronicle and incorporating randomness via the Pyth Network, the Hook ensures unbiased pricing and efficient liquidity management.
 
 - Live Demo
-- Documentation
 - GitHub Repository
 
 ## ✏️ Key Features
@@ -28,7 +26,7 @@ The Uniswap V4 ETF Hook architecture consists of:
 - ETF Hook Contract: Interacts directly with Uniswap V4 pools to manage ETF creation and rebalancing.
 - Oracles: Chainlink and Chronicle provide price feeds, while Pyth Network introduces randomness for unbiased pricing.
 - Rebalancing Engine: Implements the rebalancing logic, executed based on price movements and user-specified thresholds.
-<p align="center"> <img src="path-to-your-architecture-diagram.png" alt="Architecture Diagram" width="800" /> </p>
+
 
 ## 🛠️ Technical Implementation
 
