@@ -10,6 +10,7 @@ import {PoolId, PoolIdLibrary} from "v4-core/src/types/PoolId.sol";
 import {BalanceDelta} from "v4-core/src/types/BalanceDelta.sol";
 import {BeforeSwapDelta, BeforeSwapDeltaLibrary} from "v4-core/src/types/BeforeSwapDelta.sol";
 import {ETFManager} from "./EtfToken.sol";
+import {AggregatorV3Interface} from "@chainlink/contracts/src/v0.8/shared/interfaces/AggregatorV3Interface.sol";
 
 
 // Copied from [chronicle-std](https://github.com/chronicleprotocol/chronicle-std/blob/main/src/IChronicle.sol).
@@ -117,11 +118,17 @@ contract ETFHook is ETFManager, BaseHook {
         return BaseHook.beforeRemoveLiquidity.selector;
     }
 
-    // returns each token prices from oracle
+    // returns each token prices from chronicle oracle
     function chroniclegetPrices() public view returns  (uint256[2] memory prices) {
         // TODO: use chainlink, pyth, chronicle
         return [IChronicle(Chronicle_ETH_USD_3).read(), IChronicle(Chronicle_BTC_USD_3).read()];
     }
+
+    // returns each token prices from chainlink oracle
+    function chainlinkgetPrices() public view returns  (uint256[2] memory prices) {
+        return [AggregatorV3Interface(Chainlink_ETH_USD).latestRoundData(), AggregatorV3Interface(Chainlink_BTC_USD).latestRoundData()];
+    }
+
 
     function checkIfRebalanceNeeded() private returns (bool) {
     uint256[2] memory prices = getPrices();
