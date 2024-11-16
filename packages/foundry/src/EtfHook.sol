@@ -11,7 +11,11 @@ import {BeforeSwapDelta, BeforeSwapDeltaLibrary} from "v4-core/src/types/BeforeS
 import {IEntropyConsumer} from "@pythnetwork/entropy-sdk-solidity/IEntropyConsumer.sol";
 import {IEntropy} from "@pythnetwork/entropy-sdk-solidity/IEntropy.sol";
 import {ETFManager} from "./EtfToken.sol";
+
+import {Currency} from "v4-core/src/types/Currency.sol";
+import {IHooks} from "v4-core/src/interfaces/IHooks.sol";
 import {ERC20} from "solmate/src/tokens/ERC20.sol";
+
 import {AggregatorV3Interface} from "@chainlink/contracts/src/v0.8/shared/interfaces/AggregatorV3Interface.sol";
 
 
@@ -49,33 +53,20 @@ contract ETFHook is BaseHook ,ETFManager, IEntropyConsumer {
 
     // token balances
     uint256[2] public tokenBalances;
-
-    // Oracle addresses
-    address public chainlinkOracle;
-    address public pythOracle;
-    address public api3Oracle;
-
     // Events
     event RandomNumberReceived(bytes32 randomNumber);
-    event OracleSelected(uint256 indexed oracleIndex);
 
     constructor(
         IPoolManager _poolManager,
         address[2] memory _tokens,
         uint256[2] memory _weights,
         uint256 _rebalanceThreshold,
-        address entropyAddress,
-        address _chainlinkOracle,
-        address _pythOracle,
-        address _api3Oracle
+        address entropyAddress
     ) BaseHook(_poolManager) ETFManager("ETF Token", "ETF") {
         entropy = IEntropy(entropyAddress);
         tokens = _tokens;
         weights = _weights;
         rebalanceThreshold = _rebalanceThreshold;
-        chainlinkOracle = _chainlinkOracle;
-        pythOracle = _pythOracle;
-        api3Oracle = _api3Oracle;
         
         for (uint256 i = 0; i < 2; i++) {
             tokenBalances[i] = 0;
@@ -117,11 +108,10 @@ contract ETFHook is BaseHook ,ETFManager, IEntropyConsumer {
     function selectOracle() internal returns (bool) {
         if (!isRandomNumberReady) {
             requestRandomNumber();
-            return chainlinkOracle; // Default to Chainlink if random number not ready
+            return false; // Default to Chainlink if random number not ready
         }
         
-        uint256 randomValue = uint256(latestRandomNumber) % 2;
-        emit OracleSelected(randomValue);
+        bool randomValue = uint256(latestRandomNumber) % 2 == 0;
         return randomValue;
     }
 
@@ -147,7 +137,7 @@ contract ETFHook is BaseHook ,ETFManager, IEntropyConsumer {
 
     // Price fetching functions
     function getPrices() internal returns (uint256[2] memory prices) {
-        address selectedOracle = selectOracle();
+        bool selectedOracle = selectOracle();
         
         if (!selectedOracle) {
             return getChainlinkPrices();
@@ -239,7 +229,7 @@ contract ETFHook is BaseHook ,ETFManager, IEntropyConsumer {
         return (false, prices);
     }
 
-    function rebalance() private {
+     function rebalance() private {
         uint256[2] memory prices = getPrices();
         
         uint256[2] memory tokenValues;
@@ -257,10 +247,40 @@ contract ETFHook is BaseHook ,ETFManager, IEntropyConsumer {
         
         if (tokenValues[0] > targetValues[0]) {
             uint256 token0ToSell = (tokenValues[0] - targetValues[0]) / prices[0];
-            // TODO: Implement swap logic
-        } else {
+            // Perform swap from token0 to token1
+            IPoolManager.SwapParams memory params = IPoolManager.SwapParams({
+                zeroForOne: true,
+                amountSpecified: int256(token0ToSell),
+                sqrtPriceLimitX96: 0 // No price limit
+            });
+
+            PoolKey memory poolKey = PoolKey({
+                currency0: Currency.wrap(tokens[0]),
+                currency1: Currency.wrap(tokens[1]),
+                fee: 3000, // 0.3% fee tier
+                tickSpacing: 60,
+                hooks: IHooks(address(this))
+            });
+
+            poolManager.swap(poolKey, params, "");
+        } else if (tokenValues[1] > targetValues[1]) {
             uint256 token1ToSell = (tokenValues[1] - targetValues[1]) / prices[1];
-            // TODO: Implement swap logic
+            // Perform swap from token1 to token0
+            IPoolManager.SwapParams memory params = IPoolManager.SwapParams({
+                zeroForOne: false,
+                amountSpecified: int256(token1ToSell),
+                sqrtPriceLimitX96: 0 // No price limit
+            });
+
+            PoolKey memory poolKey = PoolKey({
+                currency0: Currency.wrap(tokens[1]),
+                currency1: Currency.wrap(tokens[0]),
+                fee: 3000, // 0.3% fee tier
+                tickSpacing: 60,
+                hooks: IHooks(address(this))
+            });
+
+            poolManager.swap(poolKey, params, "");
         }
     }
 
