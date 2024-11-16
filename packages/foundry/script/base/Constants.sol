@@ -10,7 +10,14 @@ contract Constants {
     address constant CREATE2_DEPLOYER = address(0x4e59b44847b379578588920cA78FbF26c0B4956C);
 
     /// @dev populated with default anvil addresses
-    IPoolManager constant POOLMANAGER = IPoolManager(address(0x008c4bcbe6b9ef47855f97e675296fa3f6fafa5f1a));
-    PositionManager constant posm = PositionManager(payable(address(0x001b1c77b606d13b09c84d1c7394b96b147bc03147)));
+
+    /// eth sepolia
+    // IPoolManager constant POOLMANAGER = IPoolManager(address(0x008c4bcbe6b9ef47855f97e675296fa3f6fafa5f1a));
+    // PositionManager constant posm = PositionManager(payable(address(0x001b1c77b606d13b09c84d1c7394b96b147bc03147)));
+    // IAllowanceTransfer constant PERMIT2 = IAllowanceTransfer(address(0x000000000022D473030F116dDEE9F6B43aC78BA3));
+
+    /// base sepolia
+    IPoolManager constant POOLMANAGER = IPoolManager(address(0x007da1d65f8b249183667cde74c5cbd46dd38aa829));
+    PositionManager constant posm = PositionManager(payable(address(0x00cdbe7b1ed817ef0005ece6a3e576fbae2ea5eafe)));
     IAllowanceTransfer constant PERMIT2 = IAllowanceTransfer(address(0x000000000022D473030F116dDEE9F6B43aC78BA3));
 }
