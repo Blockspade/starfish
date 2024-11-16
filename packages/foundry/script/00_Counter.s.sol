@@ -21,16 +21,8 @@ contract EtfHookScript is Script, Constants {
         // hook contracts must have specific flags encoded in the address
         uint160 flags = uint160(
             Hooks.BEFORE_SWAP_FLAG | Hooks.BEFORE_ADD_LIQUIDITY_FLAG
-                | Hooks.BEFORE_REMOVE_LIQUIDITY_FLAG
+                | Hooks.AFTER_REMOVE_LIQUIDITY_FLAG
         );
-
-        // Mine a salt that will produce a hook address with the correct flags
-        bytes memory constructorArgs = abi.encode(POOLMANAGER);
-        (address hookAddress, bytes32 salt) =
-            HookMiner.find(CREATE2_DEPLOYER, flags, type(ETFHook).creationCode, constructorArgs);
-
-        // Deploy the hook using CREATE2
-        vm.broadcast();
 
         token0 = new MockERC20("Token0", "T0", 18);
         token1 = new MockERC20("Token1", "T1", 18);
@@ -39,8 +31,19 @@ contract EtfHookScript is Script, Constants {
         address[2] memory TOKENS = [address(token0), address(token1)];
         uint256[2] memory WEIGHTS = [uint256(1), uint256(1)];
         uint256 REBALANCE_THRESHOLD = 5;
+
+        // Mine a salt that will produce a hook address with the correct flags
+        bytes memory constructorArgs = abi.encode(
+            POOLMANAGER, TOKENS, WEIGHTS, REBALANCE_THRESHOLD, address(0)
+        );
+        (address hookAddress, bytes32 salt) =
+            HookMiner.find(CREATE2_DEPLOYER, flags, type(ETFHook).creationCode, constructorArgs);
+
+        // Deploy the hook using CREATE2
+        vm.broadcast();
+
         ETFHook etfHook = new ETFHook{salt: salt}(
-            IPoolManager(POOLMANAGER), TOKENS, WEIGHTS, REBALANCE_THRESHOLD, address(0), address(0), address(0), address(0)
+            IPoolManager(POOLMANAGER), TOKENS, WEIGHTS, REBALANCE_THRESHOLD, address(0)
         );
         require(address(etfHook) == hookAddress, "EtfHookScript: hook address mismatch");
     }
