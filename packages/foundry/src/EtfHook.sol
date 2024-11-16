@@ -43,16 +43,32 @@ contract ETFHook is BaseHook ,ETFManager, IEntropyConsumer {
     address[2] public tokens; // the underlying tokens will be stored in this hook contract
     uint256[2] public weights;
     uint256 public rebalanceThreshold;
+
+    // sepolia
+    
+    // // chronicle oracle addresses
+    // address public Chronicle_BTC_USD_3 =0xdc3ef3E31AdAe791d9D5054B575f7396851Fa432;
+    // address public Chronicle_ETH_USD_3 =0xdd6D76262Fd7BdDe428dcfCd94386EbAe0151603;
+
+    // // Chainlink oracle addresses
+    // address public Chainlink_ETH_USD = 0x694AA1769357215DE4FAC081bf1f309aDC325306;
+    // address public Chainlink_BTC_USD = 0x1b44F3514812d835EB1BDB0acB33d3fA3351Ee43;
+
+    // // self-kisssed chronicle oracle addresses
+    // address public selfKissContract = 0x0Dcc19657007713483A5cA76e6A7bbe5f56EA37d;
+
+    // base sepolia
+    
     // chronicle oracle addresses
-    address public Chronicle_BTC_USD_3 =0xdc3ef3E31AdAe791d9D5054B575f7396851Fa432;
-    address public Chronicle_ETH_USD_3 =0xdd6D76262Fd7BdDe428dcfCd94386EbAe0151603;
+    address public Chronicle_BTC_USD_3 =0x8E947Ea7D5881Cd600Ace95F1201825F8C708844; //wbtc
+    address public Chronicle_ETH_USD_3 =0xea347Db6ef446e03745c441c17018eF3d641Bc8f;
 
     // Chainlink oracle addresses
-    address public Chainlink_ETH_USD = 0x694AA1769357215DE4FAC081bf1f309aDC325306;
-    address public Chainlink_BTC_USD = 0x1b44F3514812d835EB1BDB0acB33d3fA3351Ee43;
+    address public Chainlink_BTC_USD = 0x0FB99723Aee6f420beAD13e6bBB79b7E6F034298;
+    address public Chainlink_ETH_USD = 0x4aDC67696bA383F43DD60A9e78F2C97Fbbfc7cb1;
 
     // self-kisssed chronicle oracle addresses
-    address public selfKissContract = 0x0Dcc19657007713483A5cA76e6A7bbe5f56EA37d;
+    address public selfKissContract = 0x70E58b7A1c884fFFE7dbce5249337603a28b8422;
 
     // token balances
     uint256[2] public tokenBalances;

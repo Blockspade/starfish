@@ -14,6 +14,7 @@ import {MockERC20} from "solmate/src/test/utils/mocks/MockERC20.sol";
 contract EtfHookScript is Script, Constants {
     MockERC20 public token0;
     MockERC20 public token1;
+    MockERC20 public token2;
 
     function setUp() public {}
 
@@ -24,17 +25,31 @@ contract EtfHookScript is Script, Constants {
                 | Hooks.AFTER_REMOVE_LIQUIDITY_FLAG
         );
 
-        token0 = new MockERC20("Token0", "T0", 18);
-        token1 = new MockERC20("Token1", "T1", 18);
-        token0.mint(msg.sender, 1_000_000);
-        token1.mint(msg.sender, 1_000_000);
+        vm.broadcast();
+        token0 = new MockERC20("mockETH", "mockETH", 18);
+        
+        vm.broadcast();
+        token1 = new MockERC20("mockWBTC", "mockWBTC", 18);
+        
+        vm.broadcast();
+        token2 = new MockERC20("mockUSDC", "mockUSDC", 18);
+        
+        vm.broadcast();
+        token0.mint(msg.sender, 1_000_000_000_000_000_000_000_000);
+        
+        vm.broadcast();
+        token1.mint(msg.sender, 1_000_000_000_000_000_000_000_000);
+        
+        vm.broadcast();
+        token2.mint(msg.sender, 1_000_000_000_000_000_000_000_000);
         address[2] memory TOKENS = [address(token0), address(token1)];
         uint256[2] memory WEIGHTS = [uint256(1), uint256(1)];
         uint256 REBALANCE_THRESHOLD = 5;
+        address entropy = 0x41c9e39574F40Ad34c79f1C99B66A45eFB830d4c;
 
         // Mine a salt that will produce a hook address with the correct flags
         bytes memory constructorArgs = abi.encode(
-            POOLMANAGER, TOKENS, WEIGHTS, REBALANCE_THRESHOLD, address(0)
+            POOLMANAGER, TOKENS, WEIGHTS, REBALANCE_THRESHOLD, entropy
         );
         (address hookAddress, bytes32 salt) =
             HookMiner.find(CREATE2_DEPLOYER, flags, type(ETFHook).creationCode, constructorArgs);
@@ -43,7 +58,7 @@ contract EtfHookScript is Script, Constants {
         vm.broadcast();
 
         ETFHook etfHook = new ETFHook{salt: salt}(
-            IPoolManager(POOLMANAGER), TOKENS, WEIGHTS, REBALANCE_THRESHOLD, address(0)
+            IPoolManager(POOLMANAGER), TOKENS, WEIGHTS, REBALANCE_THRESHOLD, entropy
         );
         require(address(etfHook) == hookAddress, "EtfHookScript: hook address mismatch");
     }

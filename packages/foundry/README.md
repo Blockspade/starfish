@@ -42,22 +42,16 @@ forge test
 forge script script/00_Counter.s.sol --tc EtfHookScript --rpc-url https://sepolia.base.org
 ```
 
-## Deploy Hook on sepolia testnet
+## Deploy Hook on base sepolia testnet
 
 ```
-forge script script/00_Counter.s.sol --tc EtfHookScript --rpc-url https://rpc.sepolia.org --broadcast --sender 0x8B86389123A7131F68E6af86Eba8c3806C13519d --private-key <private key> --verify --verifier blockscout --verifier-url https://eth-sepolia.blockscout.com/api/
+forge script script/00_Counter.s.sol --tc EtfHookScript --rpc-url https://sepolia.base.org --broadcast --sender 0x8B86389123A7131F68E6af86Eba8c3806C13519d --private-key <private key> --verify --verifier blockscout --verifier-url https://base-sepolia.blockscout.com/api/
 ```
 
-## Deploy mock tokens on sepolia testnet
+## Create Pool and Mint Liquidity on base sepolia testnet
 
 ```
-forge script script/mocks/MockER20.s.sol --tc MockTokenScript --rpc-url https://rpc.sepolia.org --broadcast --sender 0x8B86389123A7131F68E6af86Eba8c3806C13519d --private-key <private key> --verify --verifier blockscout --verifier-url https://eth-sepolia.blockscout.com/api/
-```
-
-## Create Pool and Mint Liquidity
-
-```
-forge script script/01_CreatePoolAndMintLiquidity.s.sol --tc CreatePoolAndAddLiquidityScript --rpc-url https://rpc.sepolia.org --broadcast --sender 0x8B86389123A7131F68E6af86Eba8c3806C13519d --private-key <private key>
+forge script script/01_CreatePoolAndMintLiquidity.s.sol --tc CreatePoolAndAddLiquidityScript --rpc-url https://sepolia.base.org --broadcast --sender 0x8B86389123A7131F68E6af86Eba8c3806C13519d --private-key <private key> --verify --verifier blockscout --verifier-url https://base-sepolia.blockscout.com/api/
 ```
 
 ## Sepolia testnet Deployment address
