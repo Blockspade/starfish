@@ -1,80 +1,116 @@
-# 🏗 Scaffold-ETH 2
+## Uniswap V4 ETF Hook: Automated ETF Trading and Rebalancing 🔄
 
-<h4 align="center">
-  <a href="https://docs.scaffoldeth.io">Documentation</a> |
-  <a href="https://scaffoldeth.io">Website</a>
-</h4>
+## 🪶 Overview
+The Uniswap V4 ETF Hook introduces a groundbreaking approach to automated ETF trading and rebalancing within decentralized finance. By leveraging decentralized oracles like Chainlink and Chronicle and incorporating randomness via the Pyth Network, the Hook ensures unbiased pricing and efficient liquidity management.
 
-🧪 An open-source, up-to-date toolkit for building decentralized applications (dapps) on the Ethereum blockchain. It's designed to make it easier for developers to create and deploy smart contracts and build user interfaces that interact with those contracts.
+- Live Demo
+- GitHub Repository
 
-⚙️ Built using NextJS, RainbowKit, Foundry, Wagmi, Viem, and Typescript.
+## ✏️ Key Features
+- Automated ETF Rebalancing: Simplifies the creation and rebalancing of decentralized ETFs on Uniswap V4.
+- Oracle Integration: Uses Chainlink, Chronicle, and Pyth Network for accurate, randomized pricing.
+- Dynamic Liquidity Allocation: Automatically adjusts liquidity pools based on market conditions.
+- Uniswap V4 Hooks: Efficiently extends Uniswap V4 functionality without the need for additional smart contracts.
+- Gas Optimization: Streamlined execution ensures minimal gas costs for rebalancing operations.
+- On-Chain Transparency: All ETF creation, updates, and rebalancing transactions are visible and verifiable.
+- By combining innovative design with Uniswap V4’s new hook functionality, this project sets a new standard for on-chain ETF management.
 
-- ✅ **Contract Hot Reload**: Your frontend auto-adapts to your smart contract as you edit it.
-- 🪝 **[Custom hooks](https://docs.scaffoldeth.io/hooks/)**: Collection of React hooks wrapper around [wagmi](https://wagmi.sh/) to simplify interactions with smart contracts with typescript autocompletion.
-- 🧱 [**Components**](https://docs.scaffoldeth.io/components/): Collection of common web3 components to quickly build your frontend.
-- 🔥 **Burner Wallet & Local Faucet**: Quickly test your application with a burner wallet and local faucet.
-- 🔐 **Integration with Wallet Providers**: Connect to different wallet providers and interact with the Ethereum network.
+## 📇 Contract Address
+The ETF Hook contract is deployed on the Ethereum Sepolia Testnet.
 
-![Debug Contracts tab](https://github.com/scaffold-eth/scaffold-eth-2/assets/55535804/b237af0c-5027-4849-a5c1-2e31495cccb1)
+Sepolia Address: 0xYourContractAddressHere
 
-## Requirements
+## 🏡 Architecture
+The Uniswap V4 ETF Hook architecture consists of:
 
-Before you begin, you need to install the following tools:
+- ETF Hook Contract: Interacts directly with Uniswap V4 pools to manage ETF creation and rebalancing.
+- Oracles: Chainlink and Chronicle provide price feeds, while Pyth Network introduces randomness for unbiased pricing.
+- Rebalancing Engine: Implements the rebalancing logic, executed based on price movements and user-specified thresholds.
 
-- [Node (>= v18.18)](https://nodejs.org/en/download/)
-- Yarn ([v1](https://classic.yarnpkg.com/en/docs/install/) or [v2+](https://yarnpkg.com/getting-started/install))
-- [Git](https://git-scm.com/downloads)
 
-## Quickstart
+## 🛠️ Technical Implementation
 
-To get started with Scaffold-ETH 2, follow the steps below:
+- Hook-Based Functionality:
 
-1. Install dependencies if it was skipped in CLI:
+Extends Uniswap V4’s base functionality by integrating hooks to automate ETF operations.
+Automatically triggers rebalancing logic during swap or liquidity operations.
+
+- Oracle Integration:
+
+    - **Chainlink**: Fetches reliable price data.
+    - **Chronicle**: Provides real-time market insights.
+    - **Pyth Network**: Introduces randomized updates to prevent price manipulation.
+
+- Gas-Optimized Execution:
+
+Operations are executed directly within Uniswap V4’s hook framework, reducing overhead costs.
+
+## 🔮 Oracle Integration
+
+### Overview
+The ETF Hook integrates with Chainlink and Chronicle for deterministic price feeds and Pyth Network for randomization. This ensures fair pricing and efficient rebalancing while mitigating risks of front-running.
+
+### Benefits
+- Accurate Pricing: Chainlink and Chronicle ensure reliable and real-time price updates.
+- Randomization: Pyth Network introduces unpredictability to prevent manipulation.
+- Decentralization: Oracle data enhances trustless and on-chain decision-making.
+
+## 📀 Features and Functionalities
+
+### Automated ETF Rebalancing
+Dynamically adjusts ETF weights based on user-defined thresholds and market conditions.
+Automatically executes rebalancing during swaps and liquidity operations.
+
+### On-Chain Transparency
+All operations are verifiable and transparent, ensuring trust in decentralized ETF management.
+
+### Gas Efficiency
+Uses Uniswap V4 hooks for direct interaction with liquidity pools, minimizing transaction costs.
+
+## 💥 Blockscout Integration
+
+Verified contract addreses on Blockscout:
+- Base-Sepolia : 
+
+## 🕸️ Getting Started
+
+### Requirements
+Ensure the following are installed:
+
+- Node.js (>= v18.17)
+- Yarn
+- Git
+
+### Quickstart
+
+Clone the Repository and Install Dependencies
 
 ```
-cd my-dapp-example
+git clone https://github.com/username/UniswapV4ETFHook.git
+cd UniswapV4ETFHook
 yarn install
 ```
-
-2. Run a local network in the first terminal:
-
-```
-yarn chain
-```
-
-This command starts a local Ethereum network using Foundry. The network runs on your local machine and can be used for testing and development. You can customize the network configuration in `packages/foundry/foundry.toml`.
-
-3. On a second terminal, deploy the test contract:
-
-```
-yarn deploy
-```
-
-This command deploys a test smart contract to the local network. The contract is located in `packages/foundry/contracts` and can be modified to suit your needs. The `yarn deploy` command uses the deploy script located in `packages/foundry/script` to deploy the contract to the network. You can also customize the deploy script.
-
-4. On a third terminal, start your NextJS app:
-
+Start the App
 ```
 yarn start
 ```
+Access the application at http://localhost:3000.
+Modify configurations in config.js as needed.
 
-Visit your app on: `http://localhost:3000`. You can interact with your smart contract using the `Debug Contracts` page. You can tweak the app config in `packages/nextjs/scaffold.config.ts`.
+## 🙂 User Experience
+The ETF Hook provides following way to interact with the platform:
 
-Run smart contract test with `yarn foundry:test`
+### Direct Integration:
 
-- Edit your smart contracts in `packages/foundry/contracts`
-- Edit your frontend homepage at `packages/nextjs/app/page.tsx`. For guidance on [routing](https://nextjs.org/docs/app/building-your-application/routing/defining-routes) and configuring [pages/layouts](https://nextjs.org/docs/app/building-your-application/routing/pages-and-layouts) checkout the Next.js documentation.
-- Edit your deployment scripts in `packages/foundry/script`
+Developers can integrate the hook directly into their Uniswap V4 pool contracts.
 
+## 🔮 Future Developments
+- Support for additional decentralized oracles and chains.
+- Enhanced ETF strategies with advanced rebalancing algorithms.
+- Comprehensive analytics dashboard for ETF performance tracking.
 
-## Documentation
+## 🧑‍💻 Contributing
+We welcome contributions! Please refer to our CONTRIBUTING.md for guidelines.
 
-Visit our [docs](https://docs.scaffoldeth.io) to learn how to start building with Scaffold-ETH 2.
-
-To know more about its features, check out our [website](https://scaffoldeth.io).
-
-## Contributing to Scaffold-ETH 2
-
-We welcome contributions to Scaffold-ETH 2!
-
-Please see [CONTRIBUTING.MD](https://github.com/scaffold-eth/scaffold-eth-2/blob/main/CONTRIBUTING.md) for more information and guidelines for contributing to Scaffold-ETH 2.
+## 📜 License
+This project is licensed under the MIT License.
