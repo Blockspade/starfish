@@ -11,6 +11,7 @@ import {BeforeSwapDelta, BeforeSwapDeltaLibrary} from "v4-core/src/types/BeforeS
 import {IEntropyConsumer} from "@pythnetwork/entropy-sdk-solidity/IEntropyConsumer.sol";
 import {IEntropy} from "@pythnetwork/entropy-sdk-solidity/IEntropy.sol";
 import {ETFManager} from "./EtfToken.sol";
+import {ERC20} from "solmate/src/tokens/ERC20.sol";
 import {AggregatorV3Interface} from "@chainlink/contracts/src/v0.8/shared/interfaces/AggregatorV3Interface.sol";
 
 
@@ -29,7 +30,8 @@ interface ISelfKisser {
     /// @notice Kisses caller on oracle `oracle`.
     function selfKiss(address oracle) external;
 }
-contract ETFHook is ETFManager, BaseHook,IEntropyConsumer {
+
+contract ETFHook is BaseHook ,ETFManager, IEntropyConsumer {
     IEntropy public entropy;
     bytes32 private latestRandomNumber;
     bool private isRandomNumberReady;
@@ -37,7 +39,6 @@ contract ETFHook is ETFManager, BaseHook,IEntropyConsumer {
     address[2] public tokens; // the underlying tokens will be stored in this hook contract
     uint256[2] public weights;
     uint256 public rebalanceThreshold;
-
     // chronicle oracle addresses
     address public Chronicle_BTC_USD_3 =0xdc3ef3E31AdAe791d9D5054B575f7396851Fa432;
     address public Chronicle_ETH_USD_3 =0xdd6D76262Fd7BdDe428dcfCd94386EbAe0151603;
@@ -130,11 +131,11 @@ contract ETFHook is ETFManager, BaseHook,IEntropyConsumer {
             beforeInitialize: false,
             afterInitialize: false,
             beforeAddLiquidity: true,
-            afterAddLiquidity: true,
-            beforeRemoveLiquidity: true,
-            afterRemoveLiquidity: false,
+            afterAddLiquidity: false,
+            beforeRemoveLiquidity: false,
+            afterRemoveLiquidity: true,
             beforeSwap: true,
-            afterSwap: true,
+            afterSwap: false,
             beforeDonate: false,
             afterDonate: false,
             beforeSwapReturnDelta: false,
@@ -174,7 +175,8 @@ contract ETFHook is ETFManager, BaseHook,IEntropyConsumer {
         override
         returns (bytes4, BeforeSwapDelta, uint24)
     {
-        if (checkIfRebalanceNeeded()) {
+        (bool needed, uint256[2] memory prices) = checkIfRebalanceNeeded();
+        if (needed) {
             rebalance();
         }
         return (BaseHook.beforeSwap.selector, BeforeSwapDeltaLibrary.ZERO_DELTA, 0);
@@ -186,99 +188,104 @@ contract ETFHook is ETFManager, BaseHook,IEntropyConsumer {
         IPoolManager.ModifyLiquidityParams calldata,
         bytes calldata
     ) external override returns (bytes4) {
-        if (checkIfRebalanceNeeded()) {
+        (bool needed, uint256[2] memory prices) = checkIfRebalanceNeeded();
+        if (needed) {
             rebalance();
         }
-        mintETFToken(0);
+        // how many etf tokens to mint
+        mintETFToken(0, prices); // TODO
         return BaseHook.beforeAddLiquidity.selector;
     }
 
-    function beforeRemoveLiquidity(
+    function afterRemoveLiquidity(
         address,
         PoolKey calldata key,
         IPoolManager.ModifyLiquidityParams calldata,
         bytes calldata
     ) external override returns (bytes4) {
-        if (checkIfRebalanceNeeded()) {
+        (bool needed, uint256[2] memory prices) = checkIfRebalanceNeeded();
+        if (needed) {
             rebalance();
         }
-        burnETFToken();
+        burnETFToken(0, prices); // TODO
         return BaseHook.beforeRemoveLiquidity.selector;
     }
 
-    function checkIfRebalanceNeeded() private returns (bool) {
-    uint256[2] memory prices = getPrices();
-    
-    // Calculate current value of each token
-    uint256[2] memory tokenValues;
-    for (uint256 i = 0; i < 2; i++) {
-        tokenValues[i] = prices[i] * tokenBalances[i];
-    }
-    
-    // Calculate total portfolio value
-    uint256 totalValue = tokenValues[0] + tokenValues[1];
-    if (totalValue == 0) return false;
-    
-    // Calculate current weights (in basis points - 10000 = 100%)
-    uint256[2] memory currentWeights;
-    for (uint256 i = 0; i < 2; i++) {
-        currentWeights[i] = (tokenValues[i] * 10000) / totalValue;
-    }
-    
-    // Check if any weight deviates more than the threshold
-    for (uint256 i = 0; i < 2; i++) {
-        if (currentWeights[i] > weights[i]) {
-            if (currentWeights[i] - weights[i] > rebalanceThreshold) return true;
-        } else {
-            if (weights[i] - currentWeights[i] > rebalanceThreshold) return true;
-        }
-    }
+    // Your existing functions
+    function checkIfRebalanceNeeded() private returns (bool needed, uint256[2] memory prices) {
+        prices = getPrices();
         
-        return false;
-    }
-
-    function rebalance() private {
-        uint256[2] memory prices = getPrices();
-        
-        // Calculate current value of each token
         uint256[2] memory tokenValues;
         for (uint256 i = 0; i < 2; i++) {
             tokenValues[i] = prices[i] * tokenBalances[i];
         }
         
-        // Calculate total portfolio value
+        uint256 totalValue = tokenValues[0] + tokenValues[1];
+        if (totalValue == 0) return (false, prices);
+        
+        uint256[2] memory currentWeights;
+        for (uint256 i = 0; i < 2; i++) {
+            currentWeights[i] = (tokenValues[i] * 10000) / totalValue;
+        }
+        
+        for (uint256 i = 0; i < 2; i++) {
+            if (currentWeights[i] > weights[i]) {
+                if (currentWeights[i] - weights[i] > rebalanceThreshold) return (true, prices);
+            } else {
+                if (weights[i] - currentWeights[i] > rebalanceThreshold) return (true, prices);
+            }
+        }
+        
+        return (false, prices);
+    }
+
+    function rebalance() private {
+        uint256[2] memory prices = getPrices();
+        
+        uint256[2] memory tokenValues;
+        for (uint256 i = 0; i < 2; i++) {
+            tokenValues[i] = prices[i] * tokenBalances[i];
+        }
+        
         uint256 totalValue = tokenValues[0] + tokenValues[1];
         if (totalValue == 0) return;
         
-        // Calculate target values for each token
         uint256[2] memory targetValues;
         for (uint256 i = 0; i < 2; i++) {
             targetValues[i] = (totalValue * weights[i]) / 10000;
         }
         
-        // Determine which token to sell and which to buy
         if (tokenValues[0] > targetValues[0]) {
-            // Token 0 is overweight, sell token 0 for token 1
             uint256 token0ToSell = (tokenValues[0] - targetValues[0]) / prices[0];
-            // Execute swap through Uniswap pool
-            // TODO: Implement swap logic using poolManager
+            // TODO: Implement swap logic
         } else {
-            // Token 1 is overweight, sell token 1 for token 0
             uint256 token1ToSell = (tokenValues[1] - targetValues[1]) / prices[1];
-            // Execute swap through Uniswap pool
-            // TODO: Implement swap logic using poolManager
+            // TODO: Implement swap logic
         }
     }
 
-    function mintETFToken(uint256 etfAmount) private {
+    // 1 etf = 1 token0 + x token1 (x is calculated based on the weights and prices)
+    function mintETFToken(uint256 etfAmount, uint256[2] memory prices) private {
+        uint256 token0Amount = etfAmount;
+        uint256 token1Amount = etfAmount * prices[0] / prices[1] * weights[1] / weights[0];
         // transfer tokens to ETF pool contract
-        // update token balances
-        // mint ETF token to msg.sender
+        ERC20(tokens[0]).transferFrom(msg.sender, address(this), token0Amount);
+        ERC20(tokens[1]).transferFrom(msg.sender, address(this), token1Amount);
+        //
+        mint(msg.sender, etfAmount);
+        tokenBalances[0] += token0Amount;
+        tokenBalances[1] += token1Amount;
     }
 
-    function burnETFToken() private {
-        // transfer tokens to msg.sender
-        // update token balances
-        // burn ETF token from msg.sender
+    function burnETFToken(uint256 etfAmount, uint256[2] memory prices) private {
+        uint256 token0Amount = etfAmount;
+        uint256 token1Amount = etfAmount * prices[0] / prices[1] * weights[1] / weights[0];
+        // transfer tokens to ETF pool contract
+        ERC20(tokens[0]).transfer(msg.sender, token0Amount);
+        ERC20(tokens[1]).transfer(msg.sender, token1Amount);
+        //
+        burn(msg.sender, etfAmount);
+        tokenBalances[0] -= token0Amount;
+        tokenBalances[1] -= token1Amount;
     }
 }
