@@ -14,47 +14,65 @@ import {ETFManager} from "./EtfToken.sol";
 import {Currency} from "v4-core/src/types/Currency.sol";
 import {IHooks} from "v4-core/src/interfaces/IHooks.sol";
 
+import {AggregatorV3Interface} from "@chainlink/contracts/src/v0.8/shared/interfaces/AggregatorV3Interface.sol";
 
-contract ETFHook is BaseHook ,ETFManager, IEntropyConsumer {
+
+// Copied from [chronicle-std](https://github.com/chronicleprotocol/chronicle-std/blob/main/src/IChronicle.sol).
+interface IChronicle {
+    /*
+     * @notice Returns the oracle's current value.
+     * @dev Reverts if no value set.
+     * @return value The oracle's current value.
+     */
+    function read() external view returns (uint256 value);
+}
+
+
+interface ISelfKisser {
+    /// @notice Kisses caller on oracle `oracle`.
+    function selfKiss(address oracle) external;
+}
+contract ETFHook is ETFManager, BaseHook,IEntropyConsumer {
     IEntropy public entropy;
     bytes32 private latestRandomNumber;
     bool private isRandomNumberReady;
 
-    address[2] public tokens;
+    address[2] public tokens; // the underlying tokens will be stored in this hook contract
     uint256[2] public weights;
     uint256 public rebalanceThreshold;
+
+    // chronicle oracle addresses
+    address public Chronicle_BTC_USD_3 =0xdc3ef3E31AdAe791d9D5054B575f7396851Fa432;
+    address public Chronicle_ETH_USD_3 =0xdd6D76262Fd7BdDe428dcfCd94386EbAe0151603;
+
+    // Chainlink oracle addresses
+    address public Chainlink_ETH_USD = 0x694AA1769357215DE4FAC081bf1f309aDC325306;
+    address public Chainlink_BTC_USD = 0x1b44F3514812d835EB1BDB0acB33d3fA3351Ee43;
+
+    // token balances
     uint256[2] public tokenBalances;
-
-    // Oracle addresses
-    address public chainlinkOracle;
-    address public pythOracle;
-    address public api3Oracle;
-
     // Events
     event RandomNumberReceived(bytes32 randomNumber);
-    event OracleSelected(uint256 indexed oracleIndex);
 
     constructor(
         IPoolManager _poolManager,
         address[2] memory _tokens,
         uint256[2] memory _weights,
         uint256 _rebalanceThreshold,
-        address entropyAddress,
-        address _chainlinkOracle,
-        address _pythOracle,
-        address _api3Oracle
+        address entropyAddress
     ) BaseHook(_poolManager) ETFManager("ETF Token", "ETF") {
         entropy = IEntropy(entropyAddress);
         tokens = _tokens;
         weights = _weights;
         rebalanceThreshold = _rebalanceThreshold;
-        chainlinkOracle = _chainlinkOracle;
-        pythOracle = _pythOracle;
-        api3Oracle = _api3Oracle;
         
         for (uint256 i = 0; i < 2; i++) {
             tokenBalances[i] = 0;
         }
+
+        // This allows the contract to read from the chronicle oracle.
+        ISelfKisser(Chronicle_BTC_USD_3).selfKiss(address(this));
+        ISelfKisser(Chronicle_ETH_USD_3).selfKiss(address(this));
     }
 
     // Entropy Implementation
@@ -85,18 +103,14 @@ contract ETFHook is BaseHook ,ETFManager, IEntropyConsumer {
         return address(entropy);
     }
 
-    function selectOracle() internal returns (address) {
+    function selectOracle() internal returns (bool) {
         if (!isRandomNumberReady) {
             requestRandomNumber();
-            return chainlinkOracle; // Default to Chainlink if random number not ready
+            return false; // Default to Chainlink if random number not ready
         }
         
-        uint256 randomValue = uint256(latestRandomNumber) % 3;
-        emit OracleSelected(randomValue);
-        
-        if (randomValue == 0) return chainlinkOracle;
-        if (randomValue == 1) return pythOracle;
-        return api3Oracle;
+        bool randomValue = uint256(latestRandomNumber) % 2 == 0;
+        return randomValue;
     }
 
     // Hook permissions
@@ -121,31 +135,27 @@ contract ETFHook is BaseHook ,ETFManager, IEntropyConsumer {
 
     // Price fetching functions
     function getPrices() internal returns (uint256[2] memory prices) {
-        address selectedOracle = selectOracle();
+        bool selectedOracle = selectOracle();
         
-        if (selectedOracle == chainlinkOracle) {
+        if (!selectedOracle) {
             return getChainlinkPrices();
-        } else if (selectedOracle == pythOracle) {
-            return getPythPrices();
         } else {
-            return getAPI3Prices();
+            return getChroniclePrices();
         }
     }
 
     function getChainlinkPrices() internal view returns (uint256[2] memory prices) {
         // TODO: Implement Chainlink price fetching
-        return prices;
+       (, int256 answerETH, , ,) = AggregatorV3Interface(Chainlink_ETH_USD).latestRoundData();
+        (, int256 answerBTC, , ,) = AggregatorV3Interface(Chainlink_BTC_USD).latestRoundData();
+        return [uint256(answerETH), uint256(answerBTC)];
     }
 
-    function getPythPrices() internal view returns (uint256[2] memory prices) {
+    function getChroniclePrices() internal view returns (uint256[2] memory prices) {
         // TODO: Implement Pyth price fetching
-        return prices;
+        return [IChronicle(Chronicle_ETH_USD_3).read(), IChronicle(Chronicle_BTC_USD_3).read()];
     }
 
-    function getAPI3Prices() internal view returns (uint256[2] memory prices) {
-        // TODO: Implement API3 price fetching
-        return prices;
-    }
 
     // Hook callbacks
     function beforeSwap(address sender, PoolKey calldata key, IPoolManager.SwapParams calldata, bytes calldata)
@@ -185,30 +195,33 @@ contract ETFHook is BaseHook ,ETFManager, IEntropyConsumer {
         return BaseHook.beforeRemoveLiquidity.selector;
     }
 
-    // Your existing functions
     function checkIfRebalanceNeeded() private returns (bool) {
-        uint256[2] memory prices = getPrices();
-        
-        uint256[2] memory tokenValues;
-        for (uint256 i = 0; i < 2; i++) {
-            tokenValues[i] = prices[i] * tokenBalances[i];
+    uint256[2] memory prices = getPrices();
+    
+    // Calculate current value of each token
+    uint256[2] memory tokenValues;
+    for (uint256 i = 0; i < 2; i++) {
+        tokenValues[i] = prices[i] * tokenBalances[i];
+    }
+    
+    // Calculate total portfolio value
+    uint256 totalValue = tokenValues[0] + tokenValues[1];
+    if (totalValue == 0) return false;
+    
+    // Calculate current weights (in basis points - 10000 = 100%)
+    uint256[2] memory currentWeights;
+    for (uint256 i = 0; i < 2; i++) {
+        currentWeights[i] = (tokenValues[i] * 10000) / totalValue;
+    }
+    
+    // Check if any weight deviates more than the threshold
+    for (uint256 i = 0; i < 2; i++) {
+        if (currentWeights[i] > weights[i]) {
+            if (currentWeights[i] - weights[i] > rebalanceThreshold) return true;
+        } else {
+            if (weights[i] - currentWeights[i] > rebalanceThreshold) return true;
         }
-        
-        uint256 totalValue = tokenValues[0] + tokenValues[1];
-        if (totalValue == 0) return false;
-        
-        uint256[2] memory currentWeights;
-        for (uint256 i = 0; i < 2; i++) {
-            currentWeights[i] = (tokenValues[i] * 10000) / totalValue;
-        }
-        
-        for (uint256 i = 0; i < 2; i++) {
-            if (currentWeights[i] > weights[i]) {
-                if (currentWeights[i] - weights[i] > rebalanceThreshold) return true;
-            } else {
-                if (weights[i] - currentWeights[i] > rebalanceThreshold) return true;
-            }
-        }
+    }
         
         return false;
     }
@@ -216,20 +229,25 @@ contract ETFHook is BaseHook ,ETFManager, IEntropyConsumer {
      function rebalance() private {
         uint256[2] memory prices = getPrices();
         
+        // Calculate current value of each token
         uint256[2] memory tokenValues;
         for (uint256 i = 0; i < 2; i++) {
             tokenValues[i] = prices[i] * tokenBalances[i];
         }
         
+        // Calculate total portfolio value
         uint256 totalValue = tokenValues[0] + tokenValues[1];
         if (totalValue == 0) return;
         
+        // Calculate target values for each token
         uint256[2] memory targetValues;
         for (uint256 i = 0; i < 2; i++) {
             targetValues[i] = (totalValue * weights[i]) / 10000;
         }
         
+        // Determine which token to sell and which to buy
         if (tokenValues[0] > targetValues[0]) {
+            // Token 0 is overweight, sell token 0 for token 1
             uint256 token0ToSell = (tokenValues[0] - targetValues[0]) / prices[0];
             // Perform swap from token0 to token1
             IPoolManager.SwapParams memory params = IPoolManager.SwapParams({
@@ -269,10 +287,14 @@ contract ETFHook is BaseHook ,ETFManager, IEntropyConsumer {
     }
 
     function mintETFToken(uint256 etfAmount) private {
-        // TODO: Implement minting logic
+        // transfer tokens to ETF pool contract
+        // update token balances
+        // mint ETF token to msg.sender
     }
 
     function burnETFToken() private {
-        // TODO: Implement burning logic
+        // transfer tokens to msg.sender
+        // update token balances
+        // burn ETF token from msg.sender
     }
 }
