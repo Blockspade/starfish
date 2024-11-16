@@ -11,6 +11,9 @@ import {BeforeSwapDelta, BeforeSwapDeltaLibrary} from "v4-core/src/types/BeforeS
 import {IEntropyConsumer} from "@pythnetwork/entropy-sdk-solidity/IEntropyConsumer.sol";
 import {IEntropy} from "@pythnetwork/entropy-sdk-solidity/IEntropy.sol";
 import {ETFManager} from "./EtfToken.sol";
+import {Currency} from "v4-core/src/types/Currency.sol";
+import {IHooks} from "v4-core/src/interfaces/IHooks.sol";
+
 
 contract ETFHook is BaseHook ,ETFManager, IEntropyConsumer {
     IEntropy public entropy;
@@ -210,7 +213,7 @@ contract ETFHook is BaseHook ,ETFManager, IEntropyConsumer {
         return false;
     }
 
-    function rebalance() private {
+     function rebalance() private {
         uint256[2] memory prices = getPrices();
         
         uint256[2] memory tokenValues;
@@ -228,10 +231,40 @@ contract ETFHook is BaseHook ,ETFManager, IEntropyConsumer {
         
         if (tokenValues[0] > targetValues[0]) {
             uint256 token0ToSell = (tokenValues[0] - targetValues[0]) / prices[0];
-            // TODO: Implement swap logic
-        } else {
+            // Perform swap from token0 to token1
+            IPoolManager.SwapParams memory params = IPoolManager.SwapParams({
+                zeroForOne: true,
+                amountSpecified: int256(token0ToSell),
+                sqrtPriceLimitX96: 0 // No price limit
+            });
+
+            PoolKey memory poolKey = PoolKey({
+                currency0: Currency.wrap(tokens[0]),
+                currency1: Currency.wrap(tokens[1]),
+                fee: 3000, // 0.3% fee tier
+                tickSpacing: 60,
+                hooks: IHooks(address(this))
+            });
+
+            poolManager.swap(poolKey, params, "");
+        } else if (tokenValues[1] > targetValues[1]) {
             uint256 token1ToSell = (tokenValues[1] - targetValues[1]) / prices[1];
-            // TODO: Implement swap logic
+            // Perform swap from token1 to token0
+            IPoolManager.SwapParams memory params = IPoolManager.SwapParams({
+                zeroForOne: false,
+                amountSpecified: int256(token1ToSell),
+                sqrtPriceLimitX96: 0 // No price limit
+            });
+
+            PoolKey memory poolKey = PoolKey({
+                currency0: Currency.wrap(tokens[1]),
+                currency1: Currency.wrap(tokens[0]),
+                fee: 3000, // 0.3% fee tier
+                tickSpacing: 60,
+                hooks: IHooks(address(this))
+            });
+
+            poolManager.swap(poolKey, params, "");
         }
     }
 
