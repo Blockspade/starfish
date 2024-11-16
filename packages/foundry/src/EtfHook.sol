@@ -51,6 +51,9 @@ contract ETFHook is BaseHook ,ETFManager, IEntropyConsumer {
     address public Chainlink_ETH_USD = 0x694AA1769357215DE4FAC081bf1f309aDC325306;
     address public Chainlink_BTC_USD = 0x1b44F3514812d835EB1BDB0acB33d3fA3351Ee43;
 
+    // self-kisssed chronicle oracle addresses
+    address public selfKissContract = 0x0Dcc19657007713483A5cA76e6A7bbe5f56EA37d;
+
     // token balances
     uint256[2] public tokenBalances;
     // Events
@@ -73,8 +76,8 @@ contract ETFHook is BaseHook ,ETFManager, IEntropyConsumer {
         }
 
         // This allows the contract to read from the chronicle oracle.
-        ISelfKisser(Chronicle_BTC_USD_3).selfKiss(address(this));
-        ISelfKisser(Chronicle_ETH_USD_3).selfKiss(address(this));
+        ISelfKisser(selfKissContract).selfKiss(Chronicle_ETH_USD_3);
+        ISelfKisser(selfKissContract).selfKiss(Chronicle_BTC_USD_3);
     }
 
     // Entropy Implementation
