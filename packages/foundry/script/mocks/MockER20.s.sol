@@ -13,8 +13,9 @@ contract MockTokenScript is Script {
 
     function run() public {
         vm.startBroadcast();
-        new MockToken("MockTokenA", "MOCKA");
-        new MockToken("MockTokenB", "MOCKB");
+        new MockToken("MockETH", "mockETH");
+        new MockToken("MockWBTC", "mockWBTC");
+        new MockToken("MockUSDC", "mockUSDC");
         vm.stopBroadcast();
     }
 }

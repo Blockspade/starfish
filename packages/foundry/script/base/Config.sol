@@ -8,10 +8,17 @@ import {Currency} from "v4-core/src/types/Currency.sol";
 /// @notice Shared configuration between scripts
 contract Config {
     /// @dev populated with default anvil addresses
-    IERC20 constant token0 = IERC20(address(0x0165878A594ca255338adfa4d48449f69242Eb8F));
-    IERC20 constant token1 = IERC20(address(0xa513E6E4b8f2a923D98304ec87F64353C4D5C853));
-    IHooks constant hookContract = IHooks(address(0x0));
+    
+    // change order of tokens 
+    IERC20 constant mockETHToken = IERC20(address(0x00072cf517031907e46e885f630ace2bf2ce9a3adf));
+    IERC20 constant mockWBTCToken = IERC20(address(0x009a008944603cd27743abd114395b4e39c45ce578));
+    IERC20 constant mockUSDCToken = IERC20(address(0x0069b597aee6607a38180970984d005e14112dc7ad));
+    
+    IHooks constant hookContract = IHooks(address(0xfc07c3b8fc7e264041060eE5963d1cecb6a5C980));
+    IERC20 constant etfToken = IERC20(address(0xb4f884e8357f0424e3571b8A35BC9473fA115553));
 
-    Currency constant currency0 = Currency.wrap(address(token0));
-    Currency constant currency1 = Currency.wrap(address(token1));
+    Currency constant mockETH = Currency.wrap(address(mockETHToken));
+    Currency constant mockWBTC = Currency.wrap(address(mockWBTCToken));
+    Currency constant mockUSDC = Currency.wrap(address(mockUSDCToken));
+
 }

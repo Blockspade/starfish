@@ -42,6 +42,30 @@ forge test
 forge script script/00_Counter.s.sol --tc EtfHookScript --rpc-url https://sepolia.base.org
 ```
 
+## Deploy Hook on sepolia testnet
+
+```
+forge script script/00_Counter.s.sol --tc EtfHookScript --rpc-url https://rpc.sepolia.org --broadcast --sender 0x8B86389123A7131F68E6af86Eba8c3806C13519d --private-key <private key> --verify --verifier blockscout --verifier-url https://eth-sepolia.blockscout.com/api/
+```
+
+## Deploy mock tokens on sepolia testnet
+
+```
+forge script script/mocks/MockER20.s.sol --tc MockTokenScript --rpc-url https://rpc.sepolia.org --broadcast --sender 0x8B86389123A7131F68E6af86Eba8c3806C13519d --private-key <private key> --verify --verifier blockscout --verifier-url https://eth-sepolia.blockscout.com/api/
+```
+
+## Create Pool and Mint Liquidity
+
+```
+forge script script/01_CreatePoolAndMintLiquidity.s.sol --tc CreatePoolAndAddLiquidityScript --rpc-url https://rpc.sepolia.org --broadcast --sender 0x8B86389123A7131F68E6af86Eba8c3806C13519d --private-key <private key>
+```
+
+## Sepolia testnet Deployment address
+
+```
+https://eth-sepolia.blockscout.com/address/0xfc07c3b8fc7e264041060eE5963d1cecb6a5C980?tab=contract
+```
+
 ### Local Development (Anvil)
 
 Other than writing unit tests (recommended!), you can only deploy & test hooks on [anvil](https://book.getfoundry.sh/anvil/)
