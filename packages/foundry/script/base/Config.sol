@@ -10,12 +10,12 @@ contract Config {
     /// @dev populated with default anvil addresses
     
     // change order of tokens 
-    IERC20 constant mockETHToken = IERC20(address(0x558b4319fC92EA1D3e8E9873a74Eb1212a1771A2));
-    IERC20 constant mockWBTCToken = IERC20(address(0x96Ea69EaE0619309f9f758CFD060888412321438));
-    IERC20 constant mockUSDCToken = IERC20(address(0x64D9794A3b3ddf369FFfa3d11695fF3863776cAb));
+    IERC20 constant mockETHToken = IERC20(address(0x1bda2B87464EE964D35F53a98f03d7985B983Bb3));
+    IERC20 constant mockWBTCToken = IERC20(address(0x2D08fc34b87FC70f9a4D9AF820a3EEa43F9749A3));
+    IERC20 constant mockUSDCToken = IERC20(address(0x6A6c16456999C5A3EcCa6249b19F32F95aCeA858));
     
-    IHooks constant hookContract = IHooks(address(0xDAe08C98194FB8E92B6893e3AC30a78Fc8F4C980));
-    IERC20 constant etfToken = IERC20(address(0xa920301D5da78F06c1b53B73EcDBF0A5D8F4d1C2));
+    IHooks constant hookContract = IHooks(address(0x4419fa62199a514201A459130fa046c3D8E40980));
+    IERC20 constant etfToken = IERC20(address(0x271bf25B33c6ba22cF73a5c861FbfFf28c96e5e0));
 
     Currency constant mockETH = Currency.wrap(address(mockETHToken));
     Currency constant mockWBTC = Currency.wrap(address(mockWBTCToken));
