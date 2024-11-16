@@ -11,11 +11,36 @@ import {BalanceDelta} from "v4-core/src/types/BalanceDelta.sol";
 import {BeforeSwapDelta, BeforeSwapDeltaLibrary} from "v4-core/src/types/BeforeSwapDelta.sol";
 import {ETFManager} from "./EtfToken.sol";
 
+
+// Copied from [chronicle-std](https://github.com/chronicleprotocol/chronicle-std/blob/main/src/IChronicle.sol).
+interface IChronicle {
+    /*
+     * @notice Returns the oracle's current value.
+     * @dev Reverts if no value set.
+     * @return value The oracle's current value.
+     */
+    function read() external view returns (uint256 value);
+}
+
+
+interface ISelfKisser {
+    /// @notice Kisses caller on oracle `oracle`.
+    function selfKiss(address oracle) external;
+}
 contract ETFHook is ETFManager, BaseHook {
     address[2] public tokens; // the underlying tokens will be stored in this hook contract
     uint256[2] public weights;
     uint256 public rebalanceThreshold;
 
+    // chronicle oracle addresses
+    address public Chronicle_BTC_USD_3 =0xdc3ef3E31AdAe791d9D5054B575f7396851Fa432;
+    address public Chronicle_ETH_USD_3 =0xdd6D76262Fd7BdDe428dcfCd94386EbAe0151603;
+
+    // Chainlink oracle addresses
+    address public Chainlink_ETH_USD = 0x694AA1769357215DE4FAC081bf1f309aDC325306;
+    address public Chainlink_BTC_USD = 0x1b44F3514812d835EB1BDB0acB33d3fA3351Ee43;
+
+    // token balances
     uint256[2] public tokenBalances;
 
     constructor(
@@ -30,6 +55,10 @@ contract ETFHook is ETFManager, BaseHook {
         for (uint256 i= 0; i < 2; i++) {
             tokenBalances[i] = 0;
         }
+
+        // This allows the contract to read from the chronicle oracle.
+        ISelfKisser(Chronicle_BTC_USD_3).selfKiss(address(this));
+        ISelfKisser(Chronicle_ETH_USD_3).selfKiss(address(this));
     }
 
     function getHookPermissions() public pure override returns (Hooks.Permissions memory) {
@@ -89,9 +118,9 @@ contract ETFHook is ETFManager, BaseHook {
     }
 
     // returns each token prices from oracle
-    function getPrices() public returns (uint256[2] memory prices) {
+    function chroniclegetPrices() public view returns  (uint256[2] memory prices) {
         // TODO: use chainlink, pyth, chronicle
-        return prices;
+        return [IChronicle(Chronicle_ETH_USD_3).read(), IChronicle(Chronicle_BTC_USD_3).read()];
     }
 
     function checkIfRebalanceNeeded() private returns (bool) {
