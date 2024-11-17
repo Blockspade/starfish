@@ -18,7 +18,7 @@ The Uniswap V4 ETF Hook introduces a groundbreaking approach to automated ETF tr
 ## 📇 Contract Address
 The ETF Hook contract is deployed on the Ethereum Sepolia Testnet.
 
-Sepolia Address: 0xYourContractAddressHere
+Sepolia Address: https://base-sepolia.blockscout.com/address/0x4419fa62199a514201A459130fa046c3D8E40980?tab=contract
 
 ## 🏡 Architecture
 The Uniswap V4 ETF Hook architecture consists of:
